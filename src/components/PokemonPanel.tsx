@@ -5,15 +5,14 @@ import {
   abilityNames,
   genSupports,
   isMultiHit,
-  itemNames,
   moveDefaults,
-  moveNames,
   natureLabel,
   natureNames,
   otherFormes,
   teraTypeNames,
   typeNames,
 } from '../lib/dex';
+import {availableItemNames, useMoveOptions} from '../lib/availability';
 import {analysisUrl, computedStats, maxHP, totalInvestment} from '../lib/pokemon';
 import {parseSetId} from '../lib/sets';
 
@@ -23,6 +22,8 @@ interface PokemonPanelProps {
   pokemon: PokemonState;
   setId: string;
   options: {id: string}[];
+  availableSpecies: string[];
+  unrestricted: boolean;
   onlyImported: boolean;
   hasImported: boolean;
   onOnlyImported: (value: boolean) => void;
@@ -37,6 +38,8 @@ export function PokemonPanel({
   pokemon,
   setId,
   options,
+  availableSpecies,
+  unrestricted,
   onlyImported,
   hasImported,
   onOnlyImported,
@@ -47,7 +50,10 @@ export function PokemonPanel({
   const stats = computedStats(gen, pokemon);
   const max = maxHP(gen, pokemon);
   const hpColor = pokemon.percentHP > 50 ? 'hp-green' : pokemon.percentHP > 20 ? 'hp-yellow' : 'hp-red';
-  const formes = otherFormes(gen, pokemon.species);
+  const allowed = unrestricted ? undefined : new Set(availableSpecies);
+  const formes = otherFormes(gen, pokemon.species, allowed);
+  const extraMoves = pokemon.moves.map((slot) => slot.name);
+  const moveOptions = useMoveOptions(gen, pokemon.species, extraMoves, unrestricted);
   const types = typeNames(gen);
   const labels = gen === 1 ? GEN1_STAT_LABELS : STAT_LABELS;
   const showSps = genSupports('sps', gen);
@@ -289,7 +295,7 @@ export function PokemonPanel({
             <label>Item</label>
             <select value={pokemon.item} onChange={(e) => set({item: e.target.value})}>
               <option value="">(none)</option>
-              {itemNames(gen).map((item) => <option key={item} value={item}>{item}</option>)}
+              {availableItemNames(gen, unrestricted, pokemon.item).map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </div>
         )}
@@ -337,6 +343,7 @@ export function PokemonPanel({
           <MoveRow
             key={index}
             gen={gen}
+            moves={moveOptions}
             move={move}
             onChange={(patch) => setMove(index, patch)}
           />
@@ -348,10 +355,12 @@ export function PokemonPanel({
 
 function MoveRow({
   gen,
+  moves,
   move,
   onChange,
 }: {
   gen: CalcGen;
+  moves: string[];
   move: MoveSlot;
   onChange: (patch: Partial<MoveSlot>) => void;
 }) {
@@ -366,7 +375,7 @@ function MoveRow({
           onChange({name: e.target.value, ...defaults});
         }}
       >
-        {moveNames(gen).map((name) => <option key={name} value={name}>{name}</option>)}
+        {moves.map((name) => <option key={name} value={name}>{name}</option>)}
       </select>
       <input type="number" className="narrow" value={move.bp} onChange={(e) => onChange({bp: Number(e.target.value)})} />
       <select value={move.type} onChange={(e) => onChange({type: e.target.value})}>
