@@ -24,7 +24,7 @@ export function emptyMove(): MoveSlot {
     isStellarFirstUse: false,
     hits: 1,
     timesUsed: 1,
-    timesUsedWithMetronome: 0,
+    timesUsedWithMetronome: 1,
   };
 }
 
@@ -32,8 +32,9 @@ export function zeroStats(value: number): StatsTable {
   return {hp: value, atk: value, def: value, spa: value, spd: value, spe: value};
 }
 
-export function defaultPokemon(gen: CalcGen, species?: string): PokemonState {
-  const name = species && speciesDex(gen)[species] ? species : speciesNames(gen)[0] ?? 'Abra';
+export function defaultPokemon(gen: CalcGen, species?: string, pool?: string[]): PokemonState {
+  const names = pool?.length ? pool : speciesNames(gen);
+  const name = species && speciesDex(gen)[species] ? species : names[0] ?? 'Abra';
   const baseStats = baseStatsFromSpecies(gen, name) ?? zeroStats(100);
   const types = speciesTypes(gen, name);
   const level = gen === 0 ? 50 : 100;

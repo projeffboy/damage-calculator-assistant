@@ -66,8 +66,8 @@ export function toMove(gen: CalcGen, poke: PokemonState, slot: MoveSlot): Move {
     isCrit: slot.isCrit,
     isStellarFirstUse: slot.isStellarFirstUse,
     hits: slot.hits,
-    timesUsed: slot.timesUsed,
-    timesUsedWithMetronome: slot.timesUsedWithMetronome,
+    timesUsed: slot.timesUsed || 1,
+    timesUsedWithMetronome: slot.timesUsedWithMetronome || 1,
     overrides: {
       basePower: slot.bp,
       type: parseType(slot.type),

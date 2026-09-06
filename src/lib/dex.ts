@@ -88,15 +88,16 @@ export function speciesGender(gen: CalcGen, name: string): '' | 'M' | 'F' | 'N' 
   return speciesDex(gen)[name]?.gender ?? '';
 }
 
-export function otherFormes(gen: CalcGen, name: string): string[] {
+export function otherFormes(gen: CalcGen, name: string, allowed?: ReadonlySet<string>): string[] {
   const data = speciesDex(gen)[name];
   if (!data) return [];
   const formes = data.otherFormes ?? [];
-  if (data.baseSpecies && data.baseSpecies !== name) {
-    const base = speciesDex(gen)[data.baseSpecies];
-    return [data.baseSpecies, ...(base?.otherFormes ?? [])];
-  }
-  return formes;
+  const listed =
+    data.baseSpecies && data.baseSpecies !== name
+      ? [data.baseSpecies, ...(speciesDex(gen)[data.baseSpecies]?.otherFormes ?? [])]
+      : formes;
+  if (!allowed) return listed;
+  return listed.filter((forme) => forme === name || allowed.has(forme));
 }
 
 export function moveDefaults(

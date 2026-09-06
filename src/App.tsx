@@ -6,7 +6,7 @@ import {FieldPanel} from './components/FieldPanel';
 import {ImportExport} from './components/ImportExport';
 import {Honkalculate} from './components/Honkalculate';
 import type {CalcGen, GenerationNum, Mode, Notation, PokemonState, Setdex, Theme} from './lib/types';
-import {speciesNames} from './lib/dex';
+import {availableSpeciesNames} from './lib/availability';
 import {applySet, applySpecies, defaultPokemon} from './lib/pokemon';
 import {defaultField} from './lib/field';
 import {calculateBulk, calculateSides} from './lib/calculate';
@@ -25,8 +25,13 @@ function buildOptions(species: string[], dex: Setdex, imported: Setdex, onlyImpo
   if (onlyImported) {
     return setOptions(imported).map((option) => ({id: option.id}));
   }
+  const names = [...species];
+  for (const name of Object.keys(imported)) {
+    if (!names.includes(name)) names.push(name);
+  }
+  names.sort((a, b) => a.localeCompare(b));
   const options: {id: string}[] = [];
-  for (const name of species) {
+  for (const name of names) {
     options.push({id: blankId(name)});
     const sets = {...dex[name], ...imported[name]};
     for (const setName of Object.keys(sets)) {
@@ -63,10 +68,14 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'auto');
   const calcGen = calcGenFor(mode, gen);
 
-  const [p1, setP1] = useState(() => defaultPokemon(calcGen));
-  const [p2, setP2] = useState(() => defaultPokemon(calcGen));
-  const [p1Id, setP1Id] = useState(() => blankId(defaultPokemon(calcGen).species));
-  const [p2Id, setP2Id] = useState(() => blankId(defaultPokemon(calcGen).species));
+  const [p1, setP1] = useState(() =>
+    defaultPokemon(calcGen, undefined, availableSpeciesNames(calcGen, initial.mode)),
+  );
+  const [p2, setP2] = useState(() =>
+    defaultPokemon(calcGen, undefined, availableSpeciesNames(calcGen, initial.mode)),
+  );
+  const [p1Id, setP1Id] = useState(() => blankId(p1.species));
+  const [p2Id, setP2Id] = useState(() => blankId(p2.species));
   const [field, setField] = useState(() => {
     const next = defaultField();
     if (initial.mode === 'champions') next.gameType = 'Doubles';
@@ -98,25 +107,34 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    const load = mode === 'randoms' ? loadRandoms : loadSetdex;
+    const load = mode === 'randoms' ? loadRandoms : (g: CalcGen) => loadSetdex(g, mode === 'oms');
     void load(calcGen).then((dex) => {
       if (cancelled) return;
       setSetdex(dex);
+      const pool = availableSpeciesNames(calcGen, mode, dex);
       const loaded = setOptions(dex);
-      if (loaded.length === 0) return;
+      if (loaded.length === 0) {
+        const poke = defaultPokemon(calcGen, undefined, pool);
+        setP1(poke);
+        setP2(defaultPokemon(calcGen, undefined, pool));
+        setP1Id(blankId(poke.species));
+        setP2Id(blankId(poke.species));
+        return;
+      }
       const first = loaded[0];
       const second = loaded[1] ?? loaded[0];
       setP1Id(first.id);
       setP2Id(second.id);
-      setP1(pokemonFromSetId(first.id, calcGen, dex, defaultPokemon(calcGen, first.species)));
-      setP2(pokemonFromSetId(second.id, calcGen, dex, defaultPokemon(calcGen, second.species)));
+      setP1(pokemonFromSetId(first.id, calcGen, dex, defaultPokemon(calcGen, first.species, pool)));
+      setP2(pokemonFromSetId(second.id, calcGen, dex, defaultPokemon(calcGen, second.species, pool)));
     });
     return () => {
       cancelled = true;
     };
   }, [calcGen, mode]);
 
-  const species = useMemo(() => speciesNames(calcGen), [calcGen]);
+  const species = useMemo(() => availableSpeciesNames(calcGen, mode, setdex), [calcGen, mode, setdex]);
+  const unrestricted = mode === 'oms';
   const combinedDex = useMemo(() => mergeSetdex(setdex, imported), [setdex, imported]);
   const options = useMemo(
     () => buildOptions(species, setdex, imported, onlyImported),
@@ -161,9 +179,10 @@ export default function App() {
   function changeGen(next: GenerationNum) {
     setGen(next);
     const g = calcGenFor(mode, next);
-    const poke = defaultPokemon(g);
+    const pool = availableSpeciesNames(g, mode);
+    const poke = defaultPokemon(g, undefined, pool);
     setP1(poke);
-    setP2(defaultPokemon(g));
+    setP2(defaultPokemon(g, undefined, pool));
     setP1Id(blankId(poke.species));
     setP2Id(blankId(poke.species));
     setField(defaultField());
@@ -173,9 +192,10 @@ export default function App() {
   function changeMode(next: Mode) {
     setMode(next);
     const g = calcGenFor(next, gen);
-    const poke = defaultPokemon(g);
+    const pool = availableSpeciesNames(g, next);
+    const poke = defaultPokemon(g, undefined, pool);
     setP1(poke);
-    setP2(defaultPokemon(g));
+    setP2(defaultPokemon(g, undefined, pool));
     setP1Id(blankId(poke.species));
     setP2Id(blankId(poke.species));
     const nextField = defaultField();
@@ -246,6 +266,8 @@ export default function App() {
             pokemon={p1}
             setId={p1Id}
             options={options}
+            availableSpecies={species}
+            unrestricted={unrestricted}
             onlyImported={onlyImported}
             hasImported={hasImported}
             onOnlyImported={setOnlyImported}
@@ -268,6 +290,8 @@ export default function App() {
                 pokemon={p2}
                 setId={p2Id}
                 options={options}
+                availableSpecies={species}
+                unrestricted={unrestricted}
                 onlyImported={onlyImported}
                 hasImported={hasImported}
                 onOnlyImported={setOnlyImported}
