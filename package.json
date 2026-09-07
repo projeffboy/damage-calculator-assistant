@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "fetch-sprites": "node scripts/fetch-sprites.mjs"
   },
   "dependencies": {
     "@pkmn/data": "^0.10.11",
     "@pkmn/dex": "^0.10.11",
+    "@pkmn/img": "^0.3.4",
     "@smogon/calc": "^0.11.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8"

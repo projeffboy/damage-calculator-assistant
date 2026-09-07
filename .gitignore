@@ -25,3 +25,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Showdown sprite dump from `npm run fetch-sprites` (hundreds of MB)
+/public/sprites/ani/
+/public/sprites/ani-back/
+/public/sprites/ani-shiny/
+/public/sprites/ani-back-shiny/
+/public/sprites/dex/
+/public/sprites/dex-shiny/
+/public/sprites/gen5/
+/public/sprites/gen5-back/
+/public/sprites/gen5-shiny/
+/public/sprites/gen5-back-shiny/

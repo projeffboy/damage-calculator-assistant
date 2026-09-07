@@ -17,6 +17,15 @@ export function evsForEngine(gen: CalcGen, evs: StatsTable): StatsTable {
   return out;
 }
 
+export function spsFromEvs(evs: StatsTable): StatsTable {
+  const out = {...evs};
+  for (const stat of STAT_IDS) {
+    const ev = evs[stat];
+    out[stat] = ev <= 0 ? 0 : ev <= 4 ? 1 : Math.min(32, Math.round(ev / 8));
+  }
+  return out;
+}
+
 function boostsFor(poke: PokemonState, plusOneAll: boolean): Partial<StatsTable> {
   const boosts: Partial<StatsTable> = {};
   for (const stat of STAT_IDS) {
@@ -114,6 +123,9 @@ export function toField(field: FieldState, swap = false): Field {
     isMagicRoom: field.isMagicRoom,
     isWonderRoom: field.isWonderRoom,
     isGravity: field.isGravity,
+    isFairyAura: field.isFairyAura,
+    isDarkAura: field.isDarkAura,
+    isAuraBreak: field.isAuraBreak,
     isBeadsOfRuin: field.isBeadsOfRuin,
     isSwordOfRuin: field.isSwordOfRuin,
     isTabletsOfRuin: field.isTabletsOfRuin,

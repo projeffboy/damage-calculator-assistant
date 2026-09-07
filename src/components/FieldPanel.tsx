@@ -9,9 +9,19 @@ interface FieldPanelProps {
   onChange: (field: FieldState) => void;
   onExportLeft: () => void;
   onExportRight: () => void;
+  showExport?: boolean;
+  hideGameType?: boolean;
 }
 
-export function FieldPanel({gen, field, onChange, onExportLeft, onExportRight}: FieldPanelProps) {
+export function FieldPanel({
+  gen,
+  field,
+  onChange,
+  onExportLeft,
+  onExportRight,
+  showExport = true,
+  hideGameType = false,
+}: FieldPanelProps) {
   const set = (patch: Partial<FieldState>) => onChange({...field, ...patch});
   const setSide = (side: 'p1' | 'p2', patch: Partial<FieldState['p1']>) =>
     onChange({...field, [side]: {...field[side], ...patch}});
@@ -20,6 +30,7 @@ export function FieldPanel({gen, field, onChange, onExportLeft, onExportRight}: 
     <section className="field-panel" aria-label="Field">
       <fieldset>
         <legend>Field</legend>
+        {!hideGameType && (
         <div className="btn-row">
           <label className={field.gameType === 'Singles' ? 'btn on' : 'btn'}>
             <input
@@ -40,6 +51,7 @@ export function FieldPanel({gen, field, onChange, onExportLeft, onExportRight}: 
             Doubles
           </label>
         </div>
+        )}
 
         {genSupports('terrain', gen) && (
           <div className="btn-row wrap">
@@ -63,6 +75,14 @@ export function FieldPanel({gen, field, onChange, onExportLeft, onExportRight}: 
             <Toggle label="Tablets" checked={field.isTabletsOfRuin} onChange={(isTabletsOfRuin) => set({isTabletsOfRuin})} />
             <Toggle label="Sword" checked={field.isSwordOfRuin} onChange={(isSwordOfRuin) => set({isSwordOfRuin})} />
             <Toggle label="Vessel of Ruin" checked={field.isVesselOfRuin} onChange={(isVesselOfRuin) => set({isVesselOfRuin})} />
+          </div>
+        )}
+
+        {genSupports('aura', gen) && (
+          <div className="btn-row wrap">
+            <Toggle label="Fairy Aura" checked={field.isFairyAura} onChange={(isFairyAura) => set({isFairyAura})} />
+            <Toggle label="Dark Aura" checked={field.isDarkAura} onChange={(isDarkAura) => set({isDarkAura})} />
+            <Toggle label="Aura Break" checked={field.isAuraBreak} onChange={(isAuraBreak) => set({isAuraBreak})} />
           </div>
         )}
 
@@ -117,6 +137,11 @@ export function FieldPanel({gen, field, onChange, onExportLeft, onExportRight}: 
               label="Spikes"
               left={<Spikes value={field.p1.spikes} onChange={(spikes) => setSide('p1', {spikes})} />}
               right={<Spikes value={field.p2.spikes} onChange={(spikes) => setSide('p2', {spikes})} reverse />}
+            />
+            <SideRow
+              label="Toxic Spikes"
+              left={<Spikes value={field.p1.toxicSpikes} onChange={(toxicSpikes) => setSide('p1', {toxicSpikes: Math.min(2, toxicSpikes)})} max={2} />}
+              right={<Spikes value={field.p2.toxicSpikes} onChange={(toxicSpikes) => setSide('p2', {toxicSpikes: Math.min(2, toxicSpikes)})} max={2} reverse />}
             />
             <SideRow
               label="Reflect / Light Screen"
@@ -196,10 +221,12 @@ export function FieldPanel({gen, field, onChange, onExportLeft, onExportRight}: 
               left={<Check checked={field.p1.isSwitchingOut} onChange={(isSwitchingOut) => setSide('p1', {isSwitchingOut})} />}
               right={<Check checked={field.p2.isSwitchingOut} onChange={(isSwitchingOut) => setSide('p2', {isSwitchingOut})} />}
             />
-            <tr>
-              <td><button type="button" className="bs-btn" onClick={onExportLeft}>Export</button></td>
-              <td><button type="button" className="bs-btn" onClick={onExportRight}>Export</button></td>
-            </tr>
+            {showExport && (
+              <tr>
+                <td><button type="button" className="bs-btn" onClick={onExportLeft}>Export</button></td>
+                <td><button type="button" className="bs-btn" onClick={onExportRight}>Export</button></td>
+              </tr>
+            )}
           </tbody>
         </table>
       </fieldset>
@@ -234,8 +261,19 @@ function Check({label, checked, onChange}: {label?: string; checked: boolean; on
   );
 }
 
-function Spikes({value, onChange, reverse}: {value: number; onChange: (value: number) => void; reverse?: boolean}) {
-  const opts = reverse ? [3, 2, 1, 0] : [0, 1, 2, 3];
+function Spikes({
+  value,
+  onChange,
+  reverse,
+  max = 3,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  reverse?: boolean;
+  max?: number;
+}) {
+  const base = Array.from({length: max + 1}, (_, i) => i);
+  const opts = reverse ? [...base].reverse() : base;
   return (
     <span className="spikes">
       {opts.map((n) => (

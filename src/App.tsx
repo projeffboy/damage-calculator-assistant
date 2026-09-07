@@ -5,7 +5,8 @@ import {PokemonPanel} from './components/PokemonPanel';
 import {FieldPanel} from './components/FieldPanel';
 import {ImportExport} from './components/ImportExport';
 import {Honkalculate} from './components/Honkalculate';
-import type {CalcGen, GenerationNum, Mode, Notation, PokemonState, Setdex, Theme} from './lib/types';
+import {VisualSim} from './components/VisualSim';
+import type {AppView, CalcGen, GenerationNum, Mode, Notation, PokemonState, Setdex, Theme} from './lib/types';
 import {availableSpeciesNames} from './lib/availability';
 import {applySet, applySpecies, defaultPokemon} from './lib/pokemon';
 import {defaultField} from './lib/field';
@@ -50,20 +51,22 @@ function pokemonFromSetId(id: string, gen: CalcGen, dex: Setdex, current: Pokemo
   return applySet(current, parsed.species, set, gen);
 }
 
-function readParams(): {gen: GenerationNum; mode: Mode} {
+function readParams(): {gen: GenerationNum; mode: Mode; view: AppView} {
   const params = new URLSearchParams(window.location.search);
   const genRaw = Number(params.get('gen'));
   const gen = genRaw >= 1 && genRaw <= 9 ? (genRaw as GenerationNum) : 9;
   const modeRaw = params.get('mode');
   const modes: Mode[] = ['one-vs-one', 'one-vs-all', 'all-vs-one', 'champions', 'randoms', 'oms'];
   const mode = modes.includes(modeRaw as Mode) ? (modeRaw as Mode) : 'one-vs-one';
-  return {gen, mode};
+  const view: AppView = params.get('view') === 'visual' ? 'visual' : 'calc';
+  return {gen, mode, view};
 }
 
 export default function App() {
   const initial = readParams();
   const [gen, setGen] = useState<GenerationNum>(initial.mode === 'champions' ? 9 : initial.gen);
   const [mode, setMode] = useState<Mode>(initial.mode);
+  const [view, setView] = useState<AppView>(initial.view);
   const [notation, setNotation] = useState<Notation>('%');
   const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem('theme') as Theme) || 'auto');
   const calcGen = calcGenFor(mode, gen);
@@ -93,9 +96,10 @@ export default function App() {
     const params = new URLSearchParams();
     if (mode !== 'champions' && gen !== 9) params.set('gen', String(gen));
     if (mode !== 'one-vs-one') params.set('mode', mode);
+    if (view === 'visual') params.set('view', 'visual');
     const qs = params.toString();
     window.history.replaceState({}, '', qs ? `?${qs}` : window.location.pathname);
-  }, [gen, mode]);
+  }, [gen, mode, view]);
 
   useEffect(() => {
     localStorage.setItem('theme', theme);
@@ -225,12 +229,38 @@ export default function App() {
   }
 
   return (
-    <div className="page">
+    <div className={view === 'visual' ? 'page visual-page' : 'page'}>
       <header className="topbar">
-        <strong>Pokémon Damage Calculator</strong>
+        <div className="topbar-left">
+          <strong>{view === 'visual' ? 'Visual Sim' : 'Pokémon Damage Calculator'}</strong>
+          <span className="view-tabs" role="tablist" aria-label="App view">
+            <button
+              type="button"
+              role="tab"
+              className={view === 'calc' ? 'view-tab on' : 'view-tab'}
+              aria-selected={view === 'calc'}
+              onClick={() => setView('calc')}
+            >
+              Calculator
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={view === 'visual' ? 'view-tab on' : 'view-tab'}
+              aria-selected={view === 'visual'}
+              onClick={() => setView('visual')}
+            >
+              Visual Sim
+            </button>
+          </span>
+        </div>
         <span className="credit">Powered by @smogon/calc</span>
       </header>
-      <main className="wrapper">
+      <main className={view === 'visual' ? 'wrapper visual-wrap' : 'wrapper'}>
+        {view === 'visual' ? (
+          <VisualSim theme={theme} onTheme={setTheme} />
+        ) : (
+          <>
         <h1 className="title-text">Pokémon Damage Calculator</h1>
         {mode === 'champions' && (
           <p className="om-note">
@@ -336,6 +366,8 @@ export default function App() {
           Created as a React UI on top of <a href="https://github.com/smogon/damage-calc">@smogon/calc</a>.
           Original calculator by Honko, Austin, Kris, and others.
         </footer>
+          </>
+        )}
       </main>
     </div>
   );
