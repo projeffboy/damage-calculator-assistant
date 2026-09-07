@@ -11,6 +11,7 @@ export type Mode =
 
 export type Notation = '%' | 'px';
 export type Theme = 'auto' | 'light' | 'dark';
+export type AppView = 'calc' | 'visual';
 
 export type StatID = 'hp' | 'atk' | 'def' | 'spa' | 'spd' | 'spe';
 export type StatsTable = Record<StatID, number>;
@@ -93,6 +94,7 @@ export interface SideState {
   isSeeded: boolean;
   isNightmared: boolean;
   isSaltCured: boolean;
+  toxicSpikes: number;
   isForesight: boolean;
   isCharge: boolean;
   isHelpingHand: boolean;
@@ -115,6 +117,9 @@ export interface FieldState {
   isMagicRoom: boolean;
   isWonderRoom: boolean;
   isGravity: boolean;
+  isFairyAura: boolean;
+  isDarkAura: boolean;
+  isAuraBreak: boolean;
   isBeadsOfRuin: boolean;
   isSwordOfRuin: boolean;
   isTabletsOfRuin: boolean;

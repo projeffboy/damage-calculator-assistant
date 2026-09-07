@@ -42,6 +42,54 @@ function moveResult(result: Result, notation: Notation): MoveResult {
   };
 }
 
+function flattenRolls(damage: Result['damage']): number[] {
+  if (typeof damage === 'number') return [damage];
+  if (damage.length === 0) return [0];
+  if (typeof damage[0] === 'number') {
+    return damage.filter((n): n is number => typeof n === 'number');
+  }
+  return damage
+    .filter((hit): hit is number[] => Array.isArray(hit))
+    .map((hit) => {
+      const sorted = [...hit].sort((a, b) => a - b);
+      const mid = Math.floor(sorted.length / 2);
+      if (sorted.length === 0) return 0;
+      return sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+    });
+}
+
+export function medianDamage(result: Result): number {
+  const rolls = flattenRolls(result.damage);
+  if (rolls.length === 0) return 0;
+  if (typeof result.damage !== 'number' && result.damage.length > 0 && Array.isArray(result.damage[0])) {
+    return rolls.reduce((sum, n) => sum + n, 0);
+  }
+  const sorted = [...rolls].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
+
+export function calculateMove(
+  gen: CalcGen,
+  attacker: PokemonState,
+  defender: PokemonState,
+  moveIndex: number,
+  field: FieldState,
+  attackerIsP1: boolean,
+  notation: Notation,
+): MoveResult & {median: number; maxHP: number} {
+  const generation = engineGen(gen);
+  const atk = toPokemon(gen, attacker, attackerIsP1 ? field.p1.plusOneAll : field.p2.plusOneAll);
+  const def = toPokemon(gen, defender, attackerIsP1 ? field.p2.plusOneAll : field.p1.plusOneAll);
+  const calcField = toField(field, !attackerIsP1);
+  const result = calculate(generation, atk, def, toMove(gen, attacker, attacker.moves[moveIndex]), calcField);
+  return {
+    ...moveResult(result, notation),
+    median: medianDamage(result),
+    maxHP: def.maxHP(),
+  };
+}
+
 export function calculateSides(
   gen: CalcGen,
   p1: PokemonState,

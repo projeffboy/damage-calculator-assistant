@@ -126,6 +126,11 @@ export function moveDefaults(
   return {bp: data.bp, type: data.type, category, hits: typeof hits === 'number' ? hits : 1};
 }
 
+export function moveTarget(gen: CalcGen, name: string): string {
+  const data = moveDex(gen)[name] as {target?: string} | undefined;
+  return data?.target ?? 'normal';
+}
+
 export function isMultiHit(gen: CalcGen, name: string): boolean {
   const data = moveDex(gen)[name];
   return Boolean(data?.multihit);
@@ -158,6 +163,7 @@ export function genSupports(feature: string, gen: CalcGen): boolean {
     case 'terrain':
       return gen >= 6;
     case 'fairy':
+    case 'aura':
       return gen === 0 || gen >= 6;
     case 'snow':
       return gen === 9;
